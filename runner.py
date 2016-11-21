@@ -1,3 +1,13 @@
+"""
+Artificial Intelligence Fall 2016
+Final Project: NeverRed
+
+Authors: Alex Gribov and Donovyn Pickler
+
+Note: We based this off of the "runner.py" file fom SUMO's
+TraCi TLS tutorial, and so we left the original header below
+"""
+
 #!/usr/bin/env python
 """
 @file    runner.py
@@ -6,12 +16,12 @@
 @author  Michael Behrisch
 @author  Jakob Erdmann
 @date    2009-03-26
-@version $Id: runner.py 21851 2016-10-31 12:20:12Z behrisch $
+@version $Id: runner.py 19535 2015-12-05 13:47:18Z behrisch $
 
 Tutorial for traffic light control via the TraCI interface.
 
 SUMO, Simulation of Urban MObility; see http://sumo.dlr.de/
-Copyright (C) 2009-2016 DLR/TS, Germany
+Copyright (C) 2009-2015 DLR/TS, Germany
 
 This file is part of SUMO.
 SUMO is free software; you can redistribute it and/or modify
@@ -19,8 +29,6 @@ it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 3 of the License, or
 (at your option) any later version.
 """
-from __future__ import absolute_import
-from __future__ import print_function
 
 import os
 import sys
@@ -28,18 +36,25 @@ import optparse
 import subprocess
 import random
 
-# we need to import python modules from the $SUMO_HOME/tools directory
-try:
-    sys.path.append(os.path.join(os.path.dirname(
+"""
+sys.path.append(os.path.join(os.path.dirname(
         __file__), '..', '..', '..', '..', "tools"))  # tutorial in tests
     sys.path.append(os.path.join(os.environ.get("SUMO_HOME", os.path.join(
         os.path.dirname(__file__), "..", "..", "..")), "tools"))  # tutorial in docs
+    from sumolib import checkBinary
+    """
+
+# we need to import python modules from the $SUMO_HOME/tools directory
+try:
+    sys.path.append('/usr/share/sumo/tools')
     from sumolib import checkBinary
 except ImportError:
     sys.exit(
         "please declare environment variable 'SUMO_HOME' as the root directory of your sumo installation (it should contain folders 'bin', 'tools' and 'docs')")
 
 import traci
+# the port used for communicating with your sumo instance
+PORT = 8873
 
 
 def generate_routefile():
@@ -50,33 +65,37 @@ def generate_routefile():
     pEW = 1. / 11
     pNS = 1. / 30
     with open("data/cross.rou.xml", "w") as routes:
-        print("""<routes>
+        print >> routes, """<routes>
         <vType id="typeWE" accel="0.8" decel="4.5" sigma="0.5" length="5" minGap="2.5" maxSpeed="16.67" guiShape="passenger"/>
         <vType id="typeNS" accel="0.8" decel="4.5" sigma="0.5" length="5" minGap="2.5" maxSpeed="16.67" guiShape="passenger"/>
 
         <route id="right" edges="51o 1i 2o 52i" />
         <route id="left" edges="52o 2i 1o 51i" />
+<<<<<<< HEAD:NeverRed/runner.py
+        <route id="down" edges="54o 4i 3o 53i" />"""
+=======
         <route id="down" edges="54o 4i 3o 53i" />
 		<route id="down" edges="53o 4i 3o 54i" />""", file=routes)
+>>>>>>> 2c89578ab69e0c5712a7d462035884c66ac012dd:runner.py
         lastVeh = 0
         vehNr = 0
         for i in range(N):
             if random.uniform(0, 1) < pWE:
-                print('    <vehicle id="right_%i" type="typeWE" route="right" depart="%i" />' % (
-                    vehNr, i), file=routes)
+                print >> routes, '    <vehicle id="right_%i" type="typeWE" route="right" depart="%i" />' % (
+                    vehNr, i)
                 vehNr += 1
                 lastVeh = i
             if random.uniform(0, 1) < pEW:
-                print('    <vehicle id="left_%i" type="typeWE" route="left" depart="%i" />' % (
-                    vehNr, i), file=routes)
+                print >> routes, '    <vehicle id="left_%i" type="typeWE" route="left" depart="%i" />' % (
+                    vehNr, i)
                 vehNr += 1
                 lastVeh = i
             if random.uniform(0, 1) < pNS:
-                print('    <vehicle id="down_%i" type="typeNS" route="down" depart="%i" color="1,0,0"/>' % (
-                    vehNr, i), file=routes)
+                print >> routes, '    <vehicle id="down_%i" type="typeNS" route="down" depart="%i" color="1,0,0"/>' % (
+                    vehNr, i)
                 vehNr += 1
                 lastVeh = i
-        print("</routes>", file=routes)
+        print >> routes, "</routes>"
 
 # The program looks like this
 #    <tlLogic id="0" type="static" programID="0" offset="0">
@@ -90,6 +109,7 @@ def generate_routefile():
 
 def run():
     """execute the TraCI control loop"""
+    traci.init(PORT)
     step = 0
     # we start with phase 2 where EW has green
     traci.trafficlights.setPhase("0", 2)
@@ -132,6 +152,7 @@ if __name__ == "__main__":
 
     # this is the normal way of using traci. sumo is started as a
     # subprocess and then the python script connects and runs
-    traci.start([sumoBinary, "-c", "data/cross.sumocfg",
-                             "--tripinfo-output", "tripinfo.xml"])
+    sumoProcess = subprocess.Popen([sumoBinary, "-c", "data/cross.sumocfg", "--tripinfo-output",
+                                    "tripinfo.xml", "--remote-port", str(PORT)], stdout=sys.stdout, stderr=sys.stderr)
     run()
+    sumoProcess.wait()
